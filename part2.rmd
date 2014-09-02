@@ -1,0 +1,56 @@
+---
+title: "Analyzing the ToothGrowth data in R"
+date: "Sunday, August 24, 2014"
+output: word_document
+---
+Data: http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/ToothGrowth.html
+
+## Basic exploratory data analysis
+Comparing the effect of orange juice and vitamin C dosage on tooth lengths. The plot below shows that at a lower dosage, orange juice has a higher effect. However, as the dosage becomes higher vitamin C performs better. 
+
+```{r, echo=TRUE}
+data(ToothGrowth); library(ggplot2)
+g <- ggplot(data=ToothGrowth, aes(x=dose, y=len, colour=supp))
+g + geom_point() + geom_smooth(method="lm")
+```
+
+## Summary of the data
+This dataset includes `r length(ToothGrowth)` of guinea pig tooth length observations as a function of 3 dose levels of Vitamin C (0.5, 1, or 2 mg) using 2 delivery methods (orange juice or ascorbic acid.). The Tooth lengths vary from `r min(ToothGrowth$len)` to `r max(ToothGrowth$len)`, with a mean of `r mean(ToothGrowth$len)`. The variance in the observed length data is relatively high: var=`r var(ToothGrowth$len)`, sd=`r sd(ToothGrowth$len)`.
+
+```{r, echo=FALSE}
+ojDF <- ToothGrowth[ToothGrowth$supp=='OJ',]
+vcDF <- ToothGrowth[ToothGrowth$supp=='VC',]
+toothDose20 <- ToothGrowth[ToothGrowth$dose==2.0,]
+```
+
+## Confidence intervals and hypotheses
+Two hypotheses are examined 2:
+1. Orange Juice (OJ) and Vitamin C (VC) have the same effect on tooth length.
+1. OJ and VC have the same effect on tooth length when the dosage is 2.0mg
+
+### Hypothesis 1:
+By comparing the means of each effect, the mean of OJ (`r mean(ojDF$len)`) > mean of VC (`r mean(vcDF$len)`), it seems that orange juice has a higher impact. Nevertheless, tests are run to prove the hypothesis. The histogram below shows that OJ is concentrated more at higher lengths compared to VC. Visually, it seems that the hypothes is false. The results of the t.test are shown in the conclusion.
+
+```{r, echo=FALSE, fig.width=7}
+t1 <- t.test(len ~ supp, paired=FALSE, var.equal=FALSE, data=ToothGrowth)
+#ggplot(data=ToothGrowth, aes(factor(supp), len)) + geom_boxplot(aes(fill=supp))
+g2 <- ggplot(data=ToothGrowth, aes(x=len))
+g2 <- g2 + geom_histogram(aes(fill=..count..), binwidth=1)
+g2 <- g2 + scale_fill_gradient("Count", low="red", high="blue")
+g2 + facet_grid(. ~ supp)
+```
+
+### Hypothesis 2:
+By looking only at the 2.0mg dosage, we come at a different conclusion. The mean of OJ (`r mean(toothDose20[toothDose20$supp=='OJ',]$len)`) is close to VC (`r mean(toothDose20[toothDose20$supp=='VC',]$len)`). The results of the t.test are shown in the conclusion. The boxplot below shows that when we segment the data according to dosage, the 2.0mg dosage seems to have very similar results regardless of whether using OJ or VC.
+
+```{r, echo=FALSE, fig.width=7}
+t2 <- t.test(len ~ supp, paired=FALSE, var.equal=FALSE, data=toothDose20)
+g3 <- ggplot(data=ToothGrowth, aes(factor(supp), len))
+g3 <- g3 + geom_boxplot(aes(fill=supp))
+g3 + facet_grid(. ~ dose)
+```
+
+## Conclusions and Assumptions
+Hypothesis #1 is false. The Test Statistic (TS) (`r t1$statistic`) is above the 95% confidence interval of (`r qt(.95, 58)`). 
+Hypothesis #2 is true. The Test Statistic (TS) (`r t2$statistic`) is below the 95% confidence interval of (`r qt(.95, 18)`). This indicates that the dosage amount of 2.0mg is more important than the method of the delivery used.
+
